@@ -52,7 +52,8 @@ jobs:
         run: |
           sed -i "s|image: .*|image: $IMAGE_URI|g" k8s-deployment.yaml
           kubectl apply -f k8s-deployment.yaml
-          kubectl apply -f stateless-rbac.yaml
+          kubectl apply -f pod-manager-binding.yaml
+          kubectl apply -f pod-manager-role.yaml
    
       - name: Verify deployment rollout
         run: kubectl rollout status deployment/stateless-api
