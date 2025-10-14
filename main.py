@@ -18,24 +18,24 @@ NAMESPACE = "default"
 
 @app.post("/create_user_pod/{id}")
 def create_user_pod(id: str):
-    pod_name = f"user-pod-{id}"
+    # ✅ Use a different prefix to avoid StatefulSet conflict
+    pod_name = f"user-session-{id}"
 
-    # Pod manifest with labels
     pod_manifest = {
         "apiVersion": "v1",
         "kind": "Pod",
         "metadata": {
             "name": pod_name,
             "labels": {
-                "app": "user-pod", 
-                "user-id": id       
+                "app": "user-pod",   # Keep this label for Service matching
+                "user-id": id
             }
         },
         "spec": {
             "containers": [{
-                "name": "user-pod",
+                "name": "user-session",
                 "image": USER_POD_IMAGE,
-                "ports": [{"containerPort": 5901}]  
+                "ports": [{"containerPort": 5901}]  # VNC port
             }]
         }
     }
@@ -49,8 +49,9 @@ def create_user_pod(id: str):
 
 @app.get("/get_pod_details/{id}")
 def get_pod_details(id: str):
+    pod_name = f"user-session-{id}"
     try:
-        pod = k8s_api.read_namespaced_pod(name=f"user-pod-{id}", namespace=NAMESPACE)
+        pod = k8s_api.read_namespaced_pod(name=pod_name, namespace=NAMESPACE)
         return {
             "pod_name": pod.metadata.name,
             "status": pod.status.phase,
@@ -63,8 +64,9 @@ def get_pod_details(id: str):
 
 @app.get("/get_status/{id}")
 def get_status(id: str):
+    pod_name = f"user-session-{id}"
     try:
-        pod = k8s_api.read_namespaced_pod(name=f"user-pod-{id}", namespace=NAMESPACE)
+        pod = k8s_api.read_namespaced_pod(name=pod_name, namespace=NAMESPACE)
         return {"status": pod.status.phase}
     except client.exceptions.ApiException as e:
         return {"error": str(e)}
@@ -72,8 +74,9 @@ def get_status(id: str):
 
 @app.delete("/delete_user_pod/{id}")
 def delete_user_pod(id: str):
+    pod_name = f"user-session-{id}"
     try:
-        k8s_api.delete_namespaced_pod(name=f"user-pod-{id}", namespace=NAMESPACE)
-        return {"message": f"Pod user-pod-{id} deleted."}
+        k8s_api.delete_namespaced_pod(name=pod_name, namespace=NAMESPACE)
+        return {"message": f"Pod {pod_name} deleted."}
     except client.exceptions.ApiException as e:
         return {"error": str(e)}
