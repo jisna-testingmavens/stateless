@@ -4,5 +4,5 @@ metadata:
   name: pod-manager
 rules:
 - apiGroups: [""]
-  resources: ["pods"]
+  resources: ["pods", "services"]
   verbs: ["get", "list", "create", "delete", "watch"]
