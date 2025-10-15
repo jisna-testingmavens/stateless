@@ -2,8 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: stateless-api
+  labels:
+    app: stateless-api
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: stateless-api
@@ -12,21 +14,64 @@ spec:
       labels:
         app: stateless-api
     spec:
+      serviceAccountName: stateless-api-sa
       containers:
         - name: stateless-api
           image: 285982079759.dkr.ecr.us-east-1.amazonaws.com/stateless-repo:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      restartPolicy: Always
 ---
+# Service to expose stateless API externally
 apiVersion: v1
 kind: Service
 metadata:
   name: stateless-api-service
+  labels:
+    app: stateless-api
 spec:
   selector:
     app: stateless-api
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 80
       targetPort: 8000
   type: LoadBalancer
+---
+# ServiceAccount for RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stateless-api-sa
+---
+# Role allowing pod management
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: stateless-api-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/status"]
+    verbs: ["get", "list", "create", "delete"]
+---
+# RoleBinding connecting ServiceAccount to Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: stateless-api-rolebinding
+subjects:
+  - kind: ServiceAccount
+    name: stateless-api-sa
+roleRef:
+  kind: Role
+  name: stateless-api-role
+  apiGroup: rbac.authorization.k8s.io
