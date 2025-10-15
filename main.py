@@ -1,8 +1,6 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI
 from kubernetes import client, config
 import os
-import asyncio
-import websockets
 
 app = FastAPI()
 
@@ -71,46 +69,3 @@ def get_list_of_pods():
         }
         for pod in pods.items
     ]
-
-
-@app.websocket("/proxy/{id}")
-async def websocket_proxy(websocket: WebSocket, id: str):
-    """
-    Proxy VNC WebSocket traffic between browser and pod.
-    """
-    await websocket.accept()
-    pod_name = f"user-session-{id}"
-
-    try:
-        pod = k8s_api.read_namespaced_pod(name=pod_name, namespace=NAMESPACE)
-        pod_ip = pod.status.pod_ip
-
-        if not pod_ip:
-            await websocket.send_text(" Pod not ready yet.")
-            await websocket.close()
-            return
-
-        # Connect to pod's VNC server (port 5901)
-        target_url = f"ws://{pod_ip}:5901"
-        async with websockets.connect(target_url) as pod_ws:
-            async def browser_to_pod():
-                try:
-                    while True:
-                        msg = await websocket.receive_bytes()
-                        await pod_ws.send(msg)
-                except WebSocketDisconnect:
-                    await pod_ws.close()
-
-            async def pod_to_browser():
-                try:
-                    while True:
-                        msg = await pod_ws.recv()
-                        await websocket.send_bytes(msg)
-                except:
-                    await websocket.close()
-
-            await asyncio.gather(browser_to_pod(), pod_to_browser())
-
-    except Exception as e:
-        await websocket.send_text(f"Error: {str(e)}")
-        await websocket.close()
