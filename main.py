@@ -4,6 +4,14 @@ import os
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or list specific domains
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Load Kubernetes config
 if os.getenv("KUBERNETES_SERVICE_HOST"):
     config.load_incluster_config()
