@@ -3,7 +3,7 @@ name: Deploy Stateless API to EKS
 on:
   push:
     branches:
-      - main
+      - 
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
