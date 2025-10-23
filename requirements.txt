@@ -3,3 +3,4 @@ uvicorn
 kubernetes
 websockets
 fastapi[all]
+pytest
